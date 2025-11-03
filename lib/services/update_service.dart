@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -31,10 +32,58 @@ class UpdateInfo {
 
 class UpdateService {
   final AppDataService _appDataService = AppDataService();
+  Timer? _backgroundTimer;
+  final Set<String> _notifiedUpdates = {};
 
   // Initialize the service
   Future<void> init() async {
     await _appDataService.init();
+    // Start background index & update checks
+    startBackgroundChecks();
+  }
+
+  // Start periodic background checks (every 10 seconds)
+  void startBackgroundChecks() {
+    // cancel existing timer if any
+    _backgroundTimer?.cancel();
+    _backgroundTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      await _backgroundCheck();
+    });
+  }
+
+  // Stop background checks
+  void stopBackgroundChecks() {
+    _backgroundTimer?.cancel();
+    _backgroundTimer = null;
+  }
+
+  Future<void> _backgroundCheck() async {
+    try {
+      final apps = await fetchApps();
+      for (final app in apps) {
+        final update = await checkForUpdates(app);
+        if (update != null) {
+          final key = '${app.package}@${update.version}';
+          if (!_notifiedUpdates.contains(key)) {
+            _notifiedUpdates.add(key);
+            await _notifyUser(app, update);
+          }
+        }
+      }
+    } catch (e) {
+      print('Background check error: $e');
+    }
+  }
+
+  Future<void> _notifyUser(AppData app, UpdateInfo updateInfo) async {
+    try {
+      final title = '${app.name} update available';
+      final body = 'Version ${updateInfo.version} available. ${updateInfo.changelog}';
+      // Use notify-send on Linux for a simple desktop notification
+      await Process.run('notify-send', [title, body]);
+    } catch (e) {
+      print('Failed to send notification: $e');
+    }
   }
 
   // Load all apps (installed and not installed)
@@ -176,6 +225,8 @@ class UpdateService {
       if (process.exitCode == 0) {
         await _appDataService.markAppInstalled(app.package, updateInfo.version);
         print('Updated version in database to: ${updateInfo.version}');
+        // Clear any notifications recorded for this package (older versions)
+        _notifiedUpdates.removeWhere((k) => k.startsWith('${app.package}@'));
       }
 
       return process.exitCode == 0;
