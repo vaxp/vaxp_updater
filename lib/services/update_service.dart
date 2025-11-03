@@ -246,10 +246,19 @@ class UpdateService {
 
       // If installation was successful, update the version in Hive and mark as installed
       if (process.exitCode == 0) {
-        await _appDataService.markAppInstalled(app.package, updateInfo.version);
-        print('Updated version in database to: ${updateInfo.version}');
-        // Clear any notifications recorded for this package (older versions)
-        _notifiedUpdates.removeWhere((k) => k.startsWith('${app.package}@'));
+        // Verify the new version is actually installed
+        final installedVersion = await getInstalledVersion(app.package);
+        if (installedVersion.isNotEmpty) {
+          // Update both the app data and mark as installed
+          await _appDataService.updateAppVersion(app.package, installedVersion);
+          await _appDataService.markAppInstalled(app.package, installedVersion);
+          print('Updated version in database to: $installedVersion');
+          // Clear any notifications recorded for this package (older versions)
+          _notifiedUpdates.removeWhere((k) => k.startsWith('${app.package}@'));
+          // Update the app object's status
+          app.currentVersion = installedVersion;
+          app.installed = true;
+        }
       }
 
       return process.exitCode == 0;

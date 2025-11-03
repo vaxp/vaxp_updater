@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -8,27 +9,31 @@ class AppDataService {
   static const String boxName = 'apps';
   static const String indexUrl = 'https://raw.githubusercontent.com/vaxp/apps_index/main/apps.json';
   late Box<AppData> _box;
+  Timer? _backgroundTimer;
 
   // Initialize Hive and open the box
   Future<void> init() async {
     await Hive.initFlutter();
     Hive.registerAdapter(AppDataAdapter());
     _box = await Hive.openBox<AppData>(boxName);
-    // Always fetch the remote index on startup to get the latest app list
-    // This ensures the app shows new apps or updates immediately when opened.
+    // Fetch initial data
     await _fetchRemoteIndex();
+    // Start background fetching
+    startBackgroundFetch();
   }
 
-  // Refresh index if needed (every 24 hours)
-  Future<void> _refreshIndexIfNeeded() async {
-    DateTime? lastFetch;
-    if (_box.isNotEmpty) {
-      lastFetch = _box.values.first.lastIndexFetch;
-    }
-    final now = DateTime.now();
-    if (lastFetch == null || now.difference(lastFetch).inHours >= 24) {
-      await _fetchRemoteIndex();
-    }
+  // Start background fetch timer
+  void startBackgroundFetch() {
+    _backgroundTimer?.cancel();
+    _backgroundTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _fetchRemoteIndex();
+    });
+  }
+
+  // Stop background fetch timer
+  void stopBackgroundFetch() {
+    _backgroundTimer?.cancel();
+    _backgroundTimer = null;
   }
 
   // Fetch remote index from GitHub
@@ -132,5 +137,11 @@ class AppDataService {
   // Get app by package name
   AppData? getApp(String package) {
     return _box.get(package);
+  }
+
+  // Clean up resources
+  void dispose() {
+    stopBackgroundFetch();
+    _box.close();
   }
 }

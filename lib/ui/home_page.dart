@@ -122,12 +122,13 @@ class _HomePageState extends State<HomePage> {
               backgroundColor: success ? Colors.green : Colors.red,
             ),
           );
-          // Refresh installed version for this package
+          // Refresh the entire app list to ensure accurate status
           if (success) {
-            final newVer = await updateService.getInstalledVersion(app.package);
+            await _loadApps();
+            // Clear any pending updates for this app
             if (mounted) {
               setState(() {
-                _installedVersions[app.package] = newVer;
+                _pendingUpdates.remove(app.package);
               });
             }
           }
