@@ -6,6 +6,7 @@ part of 'app_data.dart';
 // TypeAdapterGenerator
 // **************************************************************************
 
+
 class AppDataAdapter extends TypeAdapter<AppData> {
   @override
   final int typeId = 0;
@@ -21,13 +22,15 @@ class AppDataAdapter extends TypeAdapter<AppData> {
       package: fields[1] as String,
       currentVersion: fields[2] as String,
       updateJsonUrl: fields[3] as String,
+      installed: fields[4] as bool? ?? false,
+      lastIndexFetch: fields[5] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppData obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -35,7 +38,11 @@ class AppDataAdapter extends TypeAdapter<AppData> {
       ..writeByte(2)
       ..write(obj.currentVersion)
       ..writeByte(3)
-      ..write(obj.updateJsonUrl);
+      ..write(obj.updateJsonUrl)
+      ..writeByte(4)
+      ..write(obj.installed)
+      ..writeByte(5)
+      ..write(obj.lastIndexFetch);
   }
 
   @override
