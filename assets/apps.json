@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Calculator",
+    "package": "vaxp-calculator",
+    "current_version": "1.0.0",
+    "update_json": "https://raw.githubusercontent.com/vaxp/Calculator/main/update.json"
+  },
+  {
+    "name": "VaxManager",
+    "package": "vaxp-manager",
+    "current_version": "1.0.0",
+    "update_json": "https://raw.githubusercontent.com/vaxp/vaxmanegr/main/update.json"
+  },
+  {
+    "name": "VaNote",
+    "package": "vaxp-vanote",
+    "current_version": "1.0.0",
+    "update_json": "https://raw.githubusercontent.com/vaxp/vanote/main/update.json"
+  }
+]
