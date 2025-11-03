@@ -34,6 +34,7 @@ class UpdateService {
   final AppDataService _appDataService = AppDataService();
   Timer? _backgroundTimer;
   final Set<String> _notifiedUpdates = {};
+  bool autoInstall = false;
 
   // Initialize the service
   Future<void> init() async {
@@ -51,6 +52,11 @@ class UpdateService {
     });
   }
 
+  /// Enable or disable automatic install when an update is found.
+  void setAutoInstall(bool enabled) {
+    autoInstall = enabled;
+  }
+
   // Stop background checks
   void stopBackgroundChecks() {
     _backgroundTimer?.cancel();
@@ -66,7 +72,24 @@ class UpdateService {
           final key = '${app.package}@${update.version}';
           if (!_notifiedUpdates.contains(key)) {
             _notifiedUpdates.add(key);
-            await _notifyUser(app, update);
+            if (autoInstall) {
+              // Attempt to auto-install in background
+              final success = await downloadAndInstall(app, update);
+              // Notify user of the result
+              final title = success
+                  ? '${app.name} updated to ${update.version}'
+                  : 'Failed to install update for ${app.name}';
+              final body = success
+                  ? 'Installed version ${update.version} successfully.'
+                  : 'Automatic installation failed for ${app.name}.';
+              await Process.run('notify-send', [title, body]);
+              if (success) {
+                // Clear old notifications for this package
+                _notifiedUpdates.removeWhere((k) => k.startsWith('${app.package}@'));
+              }
+            } else {
+              await _notifyUser(app, update);
+            }
           }
         }
       }
